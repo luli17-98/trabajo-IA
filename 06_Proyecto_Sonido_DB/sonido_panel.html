@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto 6: Procesamiento de Sonidos y Base de Datos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen p-8">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Encabezado -->
+        <header class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex items-center justify-between">
+            <div>
+                <span class="bg-amber-500/20 text-amber-400 text-xs px-2.5 py-1 rounded-md border border-amber-500/30 font-semibold">PUNTO 6</span>
+                <h1 class="text-2xl font-bold text-white mt-2">Procesamiento de Audios de Comentarios & Base de Datos</h1>
+                <p class="text-xs text-slate-400 mt-1">Alumna: Luciana Belén Garay - INCADE</p>
+            </div>
+            <a href="../index.html" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-house"></i> Volver al Inicio
+            </a>
+        </header>
+
+        <!-- Panel Principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Carga de Audio y Formulario (1/3) -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col justify-between space-y-4">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2 text-amber-400">
+                        <i class="fa-solid fa-microphone-lines"></i> Cargar Audio de Cliente
+                    </h3>
+                    
+                    <input type="file" id="selector-audio" accept="audio/*" class="hidden" onchange="mostrarInfoAudio(event)">
+
+                    <div onclick="document.getElementById('selector-audio').click()" class="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center bg-slate-900/40 hover:border-amber-500 transition cursor-pointer min-h-[140px] flex flex-col items-center justify-center mb-4">
+                        <i class="fa-solid fa-file-audio text-3xl text-amber-400 mb-2"></i>
+                        <p id="texto-audio" class="text-xs font-medium text-slate-200">Hacé clic para subir archivo de audio (.mp3, .wav)</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Producto:</label>
+                            <input type="text" id="input-producto" value="Notebook Gamer Pro" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Cliente:</label>
+                            <input type="text" id="input-cliente" value="Luciana Garay" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Likes:</label>
+                                <input type="number" id="input-likes" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Dislikes:</label>
+                                <input type="number" id="input-dislikes" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="procesarYGuardarAudio()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-amber-600/20">
+                    Procesar Audio y Guardar en BD
+                </button>
+            </div>
+
+            <!-- Tabla de Registros (2/3) -->
+            <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+                <h3 class="text-lg font-semibold text-emerald-400 flex items-center gap-2 border-b border-slate-700 pb-3">
+                    <i class="fa-solid fa-database"></i> Registros de Comentarios por Audio (`comentarios_sonido.db`)
+                </h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900 text-amber-400 uppercase tracking-wider border-b border-slate-700">
+                            <tr>
+                                <th class="p-3">ID</th>
+                                <th class="p-3">Producto</th>
+                                <th class="p-3">Cliente</th>
+                                <th class="p-3 text-center">Likes</th>
+                                <th class="p-3 text-center">Dislikes</th>
+                                <th class="p-3">Análisis Sentimiento</th>
+                                <th class="p-3">Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-cuerpo-audio" class="divide-y divide-slate-700">
+                            <tr>
+                                <td colspan="7" class="p-4 text-center text-slate-500">Cargando registros...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:5006';
+
+        function mostrarInfoAudio(event) {
+            const archivo = event.target.files[0];
+            if (archivo) {
+                document.getElementById('texto-audio').innerText = `Archivo cargado: ${archivo.name}`;
+            }
+        }
+
+        async function cargarRegistrosAudio() {
+            try {
+                let res = await fetch(`${API_URL}/api/listar_comentarios_audio`);
+                let data = await res.json();
+                let tbody = document.getElementById('tabla-cuerpo-audio');
+                tbody.innerHTML = '';
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">No hay registros de audio en la base de datos aún.</td></tr>`;
+                    return;
+                }
+
+                data.forEach(item => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-700/30 border-b border-slate-700/50">
+                            <td class="p-3 font-mono text-amber-300">#${item.id}</td>
+                            <td class="p-3 font-semibold text-white">${item.producto}</td>
+                            <td class="p-3 text-slate-300">${item.cliente}</td>
+                            <td class="p-3 text-center text-emerald-400 font-bold">${item.likes}</td>
+                            <td class="p-3 text-center text-rose-400 font-bold">${item.dislikes}</td>
+                            <td class="p-3"><span class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-[11px]">${item.sentimiento_audio}</span></td>
+                            <td class="p-3 text-slate-400 text-[11px]">${item.fecha}</td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error("Error al conectar con el servidor", e);
+                document.getElementById('tabla-cuerpo-audio').innerHTML = `
+                    <tr><td colspan="7" class="p-4 text-center text-amber-400">⚠️ Ejecutá <code class="bg-slate-900 px-2 py-1">python sonido_app.py</code> en la terminal.</td></tr>`;
+            }
+        }
+
+        async function procesarYGuardarAudio() {
+            let producto = document.getElementById('input-producto').value;
+            let cliente = document.getElementById('input-cliente').value;
+            let likes = document.getElementById('input-likes').value;
+            let dislikes = document.getElementById('input-dislikes').value;
+
+            try {
+                let response = await fetch(`${API_URL}/api/guardar_comentario_audio`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        producto: producto,
+                        cliente: cliente,
+                        likes: likes,
+                        dislikes: dislikes,
+                        sentimiento_audio: likes > dislikes ? 'Positivo Satisfactorio' : 'Crítico / Negativo'
+                    })
+                });
+
+                let resultado = await response.json();
+                alert(resultado.mensaje);
+                cargarRegistrosAudio();
+            } catch (err) {
+                alert('Error de conexión con el servidor del Punto 6.');
+            }
+        }
+
+        cargarRegistrosAudio();
+    </script>
+</body>
+</html>

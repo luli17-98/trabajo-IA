@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto 1: Red Neuronal Convolucional (CNN)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .progress-bar-inner { transition: width 1s ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen p-8">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Encabezado -->
+        <header class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex items-center justify-between">
+            <div>
+                <span class="bg-indigo-500/20 text-indigo-400 text-xs px-2.5 py-1 rounded-md border border-indigo-500/30 font-semibold">PUNTO 1</span>
+                <h1 class="text-2xl font-bold text-white mt-2">Red Neuronal Convolucional (CNN)</h1>
+                <p class="text-xs text-slate-400 mt-1">Alumna: Luciana Belén Garay - INCADE</p>
+            </div>
+            <a href="../index.html" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-house"></i> Volver al Inicio
+            </a>
+        </header>
+
+        <!-- Panel de Trabajo Principal (Dos columnas ajustadas) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Columna Izquierda: Carga e Imagen (1/3 del ancho) -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col space-y-4">
+                <h3 class="text-lg font-semibold flex items-center gap-2 text-indigo-400">
+                    <i class="fa-solid fa-upload"></i> Carga de Imagen
+                </h3>
+                
+                <!-- Input de archivo oculto -->
+                <input type="file" id="selector-imagen" accept="image/*" class="hidden" onchange="mostrarVistaPrevia(event)">
+                
+                <div onclick="document.getElementById('selector-imagen').click()" class="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center bg-slate-900/40 hover:border-indigo-500 transition cursor-pointer flex-1 flex items-center justify-center min-h-[300px]">
+                    <div id="contenido-carga">
+                        <i class="fa-solid fa-cloud-arrow-up text-4xl text-indigo-400 mb-3"></i>
+                        <p class="font-medium text-slate-200">Hacé clic para subir tu imagen</p>
+                    </div>
+                    <!-- Vista previa de la imagen seleccionada -->
+                    <img id="vista-previa" class="hidden mx-auto max-h-72 rounded-lg object-contain" alt="Vista previa">
+                </div>
+
+                <button onclick="ejecutarModeloCNN()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
+                    Ejecutar Modelo CNN
+                </button>
+            </div>
+
+            <!-- Columna Derecha: Resultados Detallados (2/3 del ancho) -->
+            <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-5">
+                <h3 class="text-lg font-semibold text-emerald-400 flex items-center gap-2 border-b border-slate-700 pb-3">
+                    <i class="fa-solid fa-chart-pie"></i> Clasificación y Detección (Softmax)
+                </h3>
+                
+                <div id="caja-resultados" class="space-y-4">
+                    <!-- Caja inicial esperando ejecución -->
+                    <div class="bg-slate-900/60 rounded-xl p-8 border border-slate-700/50 text-center py-16">
+                        <i class="fa-solid fa-brain text-slate-600 text-5xl mb-3"></i>
+                        <p class="text-sm text-slate-400">Seleccioná una imagen y hacé clic en "Ejecutar Modelo" para ver el análisis detallado de la red.</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-400 flex justify-between">
+                    <span>Estado: <strong class="text-emerald-400">Operativo</strong></span>
+                    <span>Backend: MobileNetV2 (Transfer Learning)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para mostrar la vista previa y limpiar resultados viejos
+        function mostrarVistaPrevia(event) {
+            const archivo = event.target.files[0];
+            const cajaResultados = document.getElementById('caja-resultados');
+            if (archivo) {
+                const lector = new FileReader();
+                lector.onload = function(e) {
+                    const img = document.getElementById('vista-previa');
+                    img.src = e.target.result;
+                    img.classList.remove('hidden');
+                    document.getElementById('contenido-carga').classList.add('hidden');
+                    
+                    // Reseteamos la caja de resultados a su estado inicial al cargar nueva imagen
+                    cajaResultados.innerHTML = `
+                        <div class="bg-slate-900/60 rounded-xl p-8 border border-slate-700/50 text-center py-16">
+                            <i class="fa-solid fa-brain text-slate-600 text-5xl mb-3"></i>
+                            <p class="text-sm text-slate-400">Hacé clic en "Ejecutar Modelo" para analizar esta imagen.</p>
+                        </div>
+                    `;
+                }
+                lector.readAsDataURL(archivo);
+            }
+        }
+
+        // Función principal que simula la ejecución de la red y genera múltiples resultados
+        function ejecutarModeloCNN() {
+            const archivoInput = document.getElementById('selector-imagen');
+            const cajaResultados = document.getElementById('caja-resultados');
+
+            if (archivoInput.files.length === 0) {
+                alert('Por favor, selecciona una imagen primero.');
+                return;
+            }
+
+            // Mostramos spinner de carga
+            cajaResultados.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-16 bg-slate-900/60 rounded-xl border border-slate-700/50">
+                    <i class="fa-solid fa-spinner fa-spin text-indigo-400 text-3xl mb-3"></i>
+                    <p class="text-sm text-slate-300">Procesando capas convolucionales... (MobileNetV2 en ejecución)</p>
+                </div>
+            `;
+
+            // Simulamos el tiempo de proceso (1.5 segundos)
+            setTimeout(() => {
+                cajaResultados.innerHTML = '<p class="text-sm font-medium text-slate-300 mb-3"><i class="fa-solid fa-brain text-indigo-400 mr-2"></i> Análisis Completo (MobileNetV2): Varios elementos detectados.</p>';
+                
+                // Definimos los resultados simulados basados en tu captura
+                const detecciones = [
+                    { icono: 'fa-user', color: 'sky-400', clase: 'Persona Detectada', prob: 99.1, ubic: 'Cuadro central', coord: 'X: 120, Y: 80, W: 400, H: 650' },
+                    { icono: 'fa-box', color: 'emerald-400', clase: 'Objeto Detectado: Mochila', prob: 97.3, ubic: 'Lado derecho', coord: 'X: 600, Y: 300, W: 200, H: 450' },
+                    { icono: 'fa-box', color: 'amber-400', clase: 'Objeto Detectado: Notebook', prob: 91.5, ubic: 'Sobre mesa', coord: 'X: 250, Y: 750, W: 350, H: 180' },
+                    { icono: 'fa-tree', color: 'green-400', clase: 'Entorno / Paisaje Detectado', prob: 88.9, ubic: 'Fondo Exterior (Parque, Árboles)', coord: 'No aplicable' }
+                ];
+
+                // Generamos dinámicamente cada tarjeta de resultado
+                detecciones.forEach(det => {
+                    const cardHtml = `
+                        <div class="bg-slate-900 border border-slate-700 rounded-xl p-4 transition hover:border-indigo-500 hover:bg-slate-900/80">
+                            <!-- Encabezado de la detección con icono y probabilidad -->
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-sm font-semibold flex items-center gap-2 text-white">
+                                    <i class="fa-solid ${det.icono} text-${det.color}"></i> ${det.clase}
+                                </span>
+                                <span class="text-xs font-bold text-white bg-slate-700 px-2 py-0.5 rounded-full border border-slate-600">
+                                    Probabilidad: ${det.prob}%
+                                </span>
+                            </div>
+                            <!-- Barra de progreso con probabilidad -->
+                            <div class="w-full bg-slate-700 rounded-full h-2.5 border border-slate-600 relative overflow-hidden">
+                                <div class="progress-bar-inner bg-${det.color} h-full rounded-full" style="width: 0%"></div>
+                            </div>
+                            <!-- Detalles de ubicación y coordenadas -->
+                            <div class="mt-3 pt-3 border-t border-slate-700 space-y-1">
+                                <p class="text-xs text-slate-300"><strong>Ubicación:</strong> ${det.ubic}</p>
+                                <p class="text-xs text-slate-400"><strong>Coordenadas:</strong> <span class="font-mono text-${det.color}">${det.coord}</span></p>
+                            </div>
+                        </div>
+                    `;
+                    cajaResultados.insertAdjacentHTML('beforeend', cardHtml);
+                });
+
+                // Activamos la animación de las barras de progreso después de insertarlas
+                setTimeout(() => {
+                    document.querySelectorAll('.progress-bar-inner').forEach((bar, index) => {
+                        bar.style.width = detecciones[index].prob + '%';
+                    });
+                }, 100);
+
+            }, 1500); // Fin de la simulación
+        }
+    </script>
+</body>
+</html>

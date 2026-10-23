@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto 5: Procesamiento de Imágenes de Animales & Base de Datos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen p-8">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Encabezado -->
+        <header class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex items-center justify-between">
+            <div>
+                <span class="bg-indigo-500/20 text-indigo-400 text-xs px-2.5 py-1 rounded-md border border-indigo-500/30 font-semibold">PUNTO 5</span>
+                <h1 class="text-2xl font-bold text-white mt-2">Procesamiento de Imágenes de Animales & Base de Datos</h1>
+                <p class="text-xs text-slate-400 mt-1">Alumna: Luciana Belén Garay - INCADE</p>
+            </div>
+            <a href="../index.html" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-house"></i> Volver al Inicio
+            </a>
+        </header>
+
+        <!-- Panel Principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Carga de Imagen y Formulario (1/3) -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col justify-between space-y-4">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2 text-indigo-400">
+                        <i class="fa-solid fa-camera"></i> Análisis de Fotografía
+                    </h3>
+                    
+                    <!-- Input de archivo Oculto -->
+                    <input type="file" id="selector-foto" accept="image/*" class="hidden" onchange="mostrarVistaPrevia(event)">
+
+                    <!-- Zona de arrastre / Clic para cargar foto -->
+                    <div onclick="document.getElementById('selector-foto').click()" class="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center bg-slate-900/40 hover:border-indigo-500 transition cursor-pointer min-h-[160px] flex flex-col items-center justify-center mb-4">
+                        <div id="contenido-carga">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-400 mb-2"></i>
+                            <p class="text-xs font-medium text-slate-200">Hacé clic para seleccionar foto del animal</p>
+                            <p class="text-[10px] text-slate-400 mt-1">JPG, PNG o WEBP</p>
+                        </div>
+                        <img id="vista-previa" class="hidden max-h-36 rounded-lg object-contain mx-auto" alt="Vista Previa Animal">
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Nombre Detectado:</label>
+                            <input type="text" id="input-nombre" value="León Africano" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Especie / Familia:</label>
+                            <input type="text" id="input-especie" value="Panthera leo" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Hábitat:</label>
+                            <input type="text" id="input-habitat" value="Sabana / Terrestre" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="procesarYGuardar()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
+                    Procesar y Guardar en BD
+                </button>
+            </div>
+
+            <!-- Tabla de Registros en Base de Datos (2/3) -->
+            <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+                <h3 class="text-lg font-semibold text-emerald-400 flex items-center gap-2 border-b border-slate-700 pb-3">
+                    <i class="fa-solid fa-database"></i> Registros Almacenados en Base de Datos (`animales_ia.db`)
+                </h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900 text-indigo-400 uppercase tracking-wider border-b border-slate-700">
+                            <tr>
+                                <th class="p-3">ID</th>
+                                <th class="p-3">Animal</th>
+                                <th class="p-3">Especie</th>
+                                <th class="p-3">Confianza</th>
+                                <th class="p-3">Hábitat</th>
+                                <th class="p-3">Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-cuerpo" class="divide-y divide-slate-700">
+                            <tr>
+                                <td colspan="6" class="p-4 text-center text-slate-500">Cargando registros...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // URL Base del Servidor Flask en Python
+        const API_URL = 'http://127.0.0.1:5005';
+
+        // Vista previa de la fotografía cargada
+        function mostrarVistaPrevia(event) {
+            const archivo = event.target.files[0];
+            if (archivo) {
+                const lector = new FileReader();
+                lector.onload = function(e) {
+                    const img = document.getElementById('vista-previa');
+                    img.src = e.target.result;
+                    img.classList.remove('hidden');
+                    document.getElementById('contenido-carga').classList.add('hidden');
+                }
+                lector.readAsDataURL(archivo);
+            }
+        }
+
+        // Consultar los datos almacenados en SQLite
+        async function cargarRegistros() {
+            try {
+                let res = await fetch(`${API_URL}/api/listar_animales`);
+                let data = await res.json();
+                let tbody = document.getElementById('tabla-cuerpo');
+                tbody.innerHTML = '';
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No hay registros en la base de datos aún.</td></tr>`;
+                    return;
+                }
+
+                data.forEach(item => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-700/30 border-b border-slate-700/50">
+                            <td class="p-3 font-mono text-indigo-300">#${item.id}</td>
+                            <td class="p-3 font-semibold text-white">${item.nombre_animal}</td>
+                            <td class="p-3 italic text-slate-400">${item.especie}</td>
+                            <td class="p-3 text-emerald-400 font-bold">${item.confianza}%</td>
+                            <td class="p-3 text-slate-300">${item.habitat}</td>
+                            <td class="p-3 text-slate-400 text-[11px]">${item.fecha}</td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error("Servidor no detectado en http://127.0.0.1:5005");
+                document.getElementById('tabla-cuerpo').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="p-4 text-center text-amber-400">
+                            ⚠️ Asegurate de tener ejecutando <code class="bg-slate-900 px-2 py-1 rounded">python db_app.py</code> en la terminal.
+                        </td>
+                    </tr>`;
+            }
+        }
+
+        // Enviar datos al servidor Python/Flask para guardar en SQLite
+        async function procesarYGuardar() {
+            let animal = document.getElementById('input-nombre').value;
+            let especie = document.getElementById('input-especie').value;
+            let habitat = document.getElementById('input-habitat').value;
+
+            if (!animal || !especie) {
+                alert('Por favor, completá el nombre y especie del animal.');
+                return;
+            }
+
+            try {
+                let response = await fetch(`${API_URL}/api/guardar_animal`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nombre_animal: animal,
+                        especie: especie,
+                        confianza: 98.5,
+                        habitat: habitat
+                    })
+                });
+
+                let resultado = await response.json();
+                alert(resultado.mensaje);
+                cargarRegistros();
+            } catch (err) {
+                alert('Error de conexión. Verificá que "python db_app.py" esté corriendo en la terminal.');
+            }
+        }
+
+        // Cargar registros al iniciar
+        cargarRegistros();
+    </script>
+</body>
+</html>

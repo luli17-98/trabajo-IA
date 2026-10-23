@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto 8: Procesamiento de PDF y Base de Datos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen p-8">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Encabezado -->
+        <header class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex items-center justify-between">
+            <div>
+                <span class="bg-rose-500/20 text-rose-400 text-xs px-2.5 py-1 rounded-md border border-rose-500/30 font-semibold">PUNTO 8</span>
+                <h1 class="text-2xl font-bold text-white mt-2">Procesamiento de Archivos PDF & Base de Datos</h1>
+                <p class="text-xs text-slate-400 mt-1">Alumna: Luciana Belén Garay - INCADE</p>
+            </div>
+            <a href="../index.html" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-house"></i> Volver al Inicio
+            </a>
+        </header>
+
+        <!-- Panel Principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Carga de PDF (1/3) -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col justify-between space-y-4">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2 text-rose-400">
+                        <i class="fa-solid fa-file-pdf"></i> Cargar Documento PDF
+                    </h3>
+                    
+                    <input type="file" id="selector-pdf" accept=".pdf" class="hidden" onchange="mostrarInfoPDF(event)">
+
+                    <div onclick="document.getElementById('selector-pdf').click()" class="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center bg-slate-900/40 hover:border-rose-500 transition cursor-pointer min-h-[140px] flex flex-col items-center justify-center mb-4">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-rose-400 mb-2"></i>
+                        <p id="texto-pdf" class="text-xs font-medium text-slate-200">Hacé clic para subir archivo PDF</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Nombre del Archivo:</label>
+                            <input type="text" id="input-nombre" value="Apunte_Inteligencia_Artificial.pdf" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-rose-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Resumen / Análisis IA:</label>
+                            <textarea id="input-resumen" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-rose-500">El documento detalla los conceptos fundamentales de redes neuronales, arquitectura modular y procesamiento de datos distribuidos.</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="procesarYGuardarPDF()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-rose-600/20 mt-4">
+                    Procesar PDF y Guardar en BD
+                </button>
+            </div>
+
+            <!-- Tabla de Registros (2/3) -->
+            <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
+                <h3 class="text-lg font-semibold text-emerald-400 flex items-center gap-2 border-b border-slate-700 pb-3">
+                    <i class="fa-solid fa-database"></i> Registros de Documentos PDF (`analisis_pdf.db`)
+                </h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900 text-rose-400 uppercase tracking-wider border-b border-slate-700">
+                            <tr>
+                                <th class="p-3">ID</th>
+                                <th class="p-3">Nombre del Archivo</th>
+                                <th class="p-3">Resumen Analítico</th>
+                                <th class="p-3">Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-cuerpo-pdf" class="divide-y divide-slate-700">
+                            <tr>
+                                <td colspan="4" class="p-4 text-center text-slate-500">Cargando registros...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:5008';
+
+        function mostrarInfoPDF(event) {
+            const archivo = event.target.files[0];
+            if (archivo) {
+                document.getElementById('texto-pdf').innerText = `Archivo: ${archivo.name}`;
+                document.getElementById('input-nombre').value = archivo.name;
+            }
+        }
+
+        async function cargarRegistrosPDF() {
+            try {
+                let res = await fetch(`${API_URL}/api/listar_pdfs`);
+                let data = await res.json();
+                let tbody = document.getElementById('tabla-cuerpo-pdf');
+                tbody.innerHTML = '';
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">No hay registros de PDF en la base de datos aún.</td></tr>`;
+                    return;
+                }
+
+                data.forEach(item => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-700/30 border-b border-slate-700/50">
+                            <td class="p-3 font-mono text-rose-300">#${item.id}</td>
+                            <td class="p-3 font-semibold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-file-pdf text-rose-400"></i> ${item.nombre_archivo}
+                            </td>
+                            <td class="p-3 text-slate-300 italic">${item.resumen}</td>
+                            <td class="p-3 text-slate-400 text-[11px]">${item.fecha}</td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error("Error al conectar con el servidor", e);
+                document.getElementById('tabla-cuerpo-pdf').innerHTML = `
+                    <tr><td colspan="4" class="p-4 text-center text-amber-400">⚠️ Ejecutá <code class="bg-slate-900 px-2 py-1">python pdf_app.py</code> en la terminal.</td></tr>`;
+            }
+        }
+
+        async function procesarYGuardarPDF() {
+            let nombre = document.getElementById('input-nombre').value;
+            let resumen = document.getElementById('input-resumen').value;
+
+            try {
+                let response = await fetch(`${API_URL}/api/guardar_pdf`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nombre_archivo: nombre,
+                        resumen: resumen
+                    })
+                });
+
+                let resultado = await response.json();
+                alert(resultado.mensaje);
+                cargarRegistrosPDF();
+            } catch (err) {
+                alert('Error de conexión con el servidor del Punto 8.');
+            }
+        }
+
+        cargarRegistrosPDF();
+    </script>
+</body>
+</html>

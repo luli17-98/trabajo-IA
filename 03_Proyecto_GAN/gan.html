@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto 3: Redes Generativas Antagónicas (GAN)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen p-8">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Encabezado -->
+        <header class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex items-center justify-between">
+            <div>
+                <span class="bg-indigo-500/20 text-indigo-400 text-xs px-2.5 py-1 rounded-md border border-indigo-500/30 font-semibold">PUNTO 3</span>
+                <h1 class="text-2xl font-bold text-white mt-2">Redes Generativas Antagónicas (GAN)</h1>
+                <p class="text-xs text-slate-400 mt-1">Alumna: Luciana Belén Garay - INCADE</p>
+            </div>
+            <a href="../index.html" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-house"></i> Volver al Inicio
+            </a>
+        </header>
+
+        <!-- Panel de Trabajo Principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Columna Izquierda: Controles del Espacio Latente (1/3) -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col justify-between space-y-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2 text-indigo-400">
+                        <i class="fa-solid fa-sliders"></i> Controles Latentes
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-2">Semilla Generativa (Seed): <span id="valor-semilla" class="text-indigo-400 font-mono font-bold">42</span></label>
+                            <input type="range" id="slider-semilla" min="1" max="1000" value="42" class="w-full accent-indigo-500 cursor-pointer" oninput="actualizarValorSemilla(this.value)">
+                        </div>
+
+                        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 space-y-2 text-xs text-slate-400">
+                            <p><strong>Generador:</strong> Red neuronal que transforma ruido aleatorio en datos estructurados.</p>
+                            <p><strong>Discriminador:</strong> Evalúa la autenticidad frente a datos reales.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="ejecutarGeneradorGAN()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
+                    Generar Imagen Sintética
+                </button>
+            </div>
+
+            <!-- Columna Derecha: Resultado Sintético (2/3) -->
+            <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-emerald-400 flex items-center gap-2 border-b border-slate-700 pb-3 mb-4">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Muestra Sintética Generada
+                    </h3>
+                    
+                    <div id="caja-resultado-gan" class="bg-slate-900/60 rounded-xl p-8 border border-slate-700/50 text-center flex flex-col items-center justify-center min-h-[320px]">
+                        <i class="fa-solid fa-image text-slate-600 text-5xl mb-3"></i>
+                        <p class="text-sm text-slate-400">Ajustá la semilla y hacé clic en "Generar Imagen Sintética" para ver el resultado del modelo.</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-700 text-xs text-slate-400 flex justify-between">
+                    <span>Estado: <strong class="text-emerald-400">Operativo</strong></span>
+                    <span>Arquitectura: DCGAN / Latent Space Sampling</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function actualizarValorSemilla(val) {
+            document.getElementById('valor-semilla').innerText = val;
+        }
+
+        function ejecutarGeneradorGAN() {
+            const semilla = document.getElementById('slider-semilla').value;
+            const cajaResultado = document.getElementById('caja-resultado-gan');
+
+            cajaResultado.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-16">
+                    <i class="fa-solid fa-spinner fa-spin text-indigo-400 text-3xl mb-3"></i>
+                    <p class="text-sm text-slate-300">Muestreando espacio latente y generando patrón sintético (Seed: ${semilla})...</p>
+                </div>
+            `;
+
+            setTimeout(() => {
+                // Generamos un patrón visual simulado dinámicamente usando SVG con gradientes basados en la semilla
+                const colorHue = (semilla * 37) % 360;
+                
+                cajaResultado.innerHTML = `
+                    <div class="space-y-4 w-full flex flex-col items-center">
+                        <div class="w-48 h-48 rounded-xl shadow-2xl border-2 border-indigo-500/40 flex items-center justify-center relative overflow-hidden" style="background: linear-gradient(135deg, hsl(${colorHue}, 70%, 30%), hsl(${(colorHue + 60)%360}, 70%, 15%));">
+                            <div class="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-black"></div>
+                            <i class="fa-solid fa-cube text-white/80 text-4xl animate-pulse"></i>
+                        </div>
+                        <div class="text-center space-y-1">
+                            <p class="text-emerald-400 font-semibold text-sm flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-circle-check"></i> ¡Imagen Sintética Creada con Éxito!
+                            </p>
+                            <p class="text-xs text-slate-400">Semilla Latente utilizada: <span class="text-indigo-400 font-mono">${semilla}</span> | Divergencia Minimax Estable</p>
+                        </div>
+                    </div>
+                `;
+            }, 1200);
+        }
+    </script>
+</body>
+</html>

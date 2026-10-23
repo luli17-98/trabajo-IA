@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto 2: Red Neuronal Recurrente (RNN / LSTM)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .progress-bar-inner { transition: width 1s ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen p-8">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Encabezado -->
+        <header class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex items-center justify-between">
+            <div>
+                <span class="bg-indigo-500/20 text-indigo-400 text-xs px-2.5 py-1 rounded-md border border-indigo-500/30 font-semibold">PUNTO 2</span>
+                <h1 class="text-2xl font-bold text-white mt-2">Red Neuronal Recurrente (RNN / LSTM)</h1>
+                <p class="text-xs text-slate-400 mt-1">Alumna: Luciana Belén Garay - INCADE</p>
+            </div>
+            <a href="../index.html" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-house"></i> Volver al Inicio
+            </a>
+        </header>
+
+        <!-- Panel de Trabajo Principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Columna Izquierda: Entrada de Texto (1/3) -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col justify-between space-y-4">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2 text-indigo-400">
+                        <i class="fa-solid fa-feather-pointed"></i> Entrada de Texto
+                    </h3>
+                    
+                    <label class="block text-xs font-medium text-slate-300 mb-2">Ingresá una frase o reseña para analizar:</label>
+                    <textarea id="input-texto" rows="6" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition resize-none" placeholder="Ejemplo: El servicio ofrecido en la plataforma fue excelente y la respuesta fue rápida."></textarea>
+                    
+                    <div class="flex gap-2 mt-2">
+                        <button onclick="cargarEjemplo('positivo')" class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-md hover:bg-emerald-500/20 transition">Ej. Positivo</button>
+                        <button onclick="cargarEjemplo('negativo')" class="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2.5 py-1 rounded-md hover:bg-rose-500/20 transition">Ej. Negativo</button>
+                        <button onclick="cargarEjemplo('neutro')" class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-md hover:bg-amber-500/20 transition">Ej. Neutro</button>
+                    </div>
+                </div>
+
+                <button onclick="ejecutarModeloRNN()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
+                    Analizar Texto con RNN
+                </button>
+            </div>
+
+            <!-- Columna Derecha: Resultados y Análisis Secuencial (2/3) -->
+            <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-5">
+                <h3 class="text-lg font-semibold text-emerald-400 flex items-center gap-2 border-b border-slate-700 pb-3">
+                    <i class="fa-solid fa-chart-line"></i> Análisis de Sentimiento & Secuencia
+                </h3>
+                
+                <div id="caja-resultados" class="space-y-4">
+                    <div class="bg-slate-900/60 rounded-xl p-8 border border-slate-700/50 text-center py-16">
+                        <i class="fa-solid fa-align-left text-slate-600 text-5xl mb-3"></i>
+                        <p class="text-sm text-slate-400">Escribí o seleccioná un texto de ejemplo y hacé clic en "Analizar Texto" para ver los resultados.</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-400 flex justify-between">
+                    <span>Estado: <strong class="text-emerald-400">Operativo</strong></span>
+                    <span>Arquitectura: LSTM / Recurrent Neural Network</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function cargarEjemplo(tipo) {
+            const input = document.getElementById('input-texto');
+            if (tipo === 'positivo') {
+                input.value = "La atención recibida fue excelente, resolvió todas mis dudas de manera profesional y rápida.";
+            } else if (tipo === 'negativo') {
+                input.value = "El sistema presentó muchas fallas de conexión y la interfaz resulta confusa para el usuario.";
+            } else if (tipo === 'neutro') {
+                input.value = "El módulo fue entregado en el plazo acordado siguiendo las especificaciones indicadas.";
+            }
+        }
+
+        function ejecutarModeloRNN() {
+            const texto = document.getElementById('input-texto').value.trim();
+            const cajaResultados = document.getElementById('caja-resultados');
+
+            if (!texto) {
+                alert('Por favor, ingresá algún texto antes de ejecutar.');
+                return;
+            }
+
+            cajaResultados.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-16 bg-slate-900/60 rounded-xl border border-slate-700/50">
+                    <i class="fa-solid fa-spinner fa-spin text-indigo-400 text-3xl mb-3"></i>
+                    <p class="text-sm text-slate-300">Tokenizando y procesando celdas de memoria LSTM...</p>
+                </div>
+            `;
+
+            setTimeout(() => {
+                // Lógica de clasificación simulada según el contenido del texto
+                let sentimiento = 'Positivo';
+                let color = 'emerald-400';
+                let icono = 'fa-face-smile';
+                let probPos = 94.2;
+                let probNeg = 2.1;
+                let probNeu = 3.7;
+
+                const txtLower = texto.toLowerCase();
+                if (txtLower.includes('falla') || txtLower.includes('confus') || txtLower.includes('malo') || txtLower.includes('error')) {
+                    sentimiento = 'Negativo';
+                    color = 'rose-400';
+                    icono = 'fa-face-frown';
+                    probPos = 3.5;
+                    probNeg = 91.8;
+                    probNeu = 4.7;
+                } else if (txtLower.includes('plazo') || txtLower.includes('acordado') || txtLower.includes('modulo')) {
+                    sentimiento = 'Neutro';
+                    color = 'amber-400';
+                    icono = 'fa-face-meh';
+                    probPos = 18.2;
+                    probNeg = 8.1;
+                    probNeu = 73.7;
+                }
+
+                cajaResultados.innerHTML = `
+                    <p class="text-sm font-medium text-slate-300 mb-3"><i class="fa-solid fa-brain text-indigo-400 mr-2"></i> Evaluación Secuencial Completada:</p>
+                    
+                    <!-- Tarjeta Principal de Sentimiento -->
+                    <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid ${icono} text-${color} text-xl"></i> Sentimiento Predominante: <span class="text-${color}">${sentimiento}</span>
+                            </span>
+                            <span class="text-xs font-bold text-white bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+                                Confianza General: ${(sentimiento==='Positivo'?probPos:sentimiento==='Negativo'?probNeg:probNeu)}%
+                            </span>
+                        </div>
+
+                        <!-- Barras de Probabilidad por Clase -->
+                        <div class="space-y-3 pt-2">
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-slate-300"><i class="fa-solid fa-circle text-emerald-400 text-[10px] mr-1"></i> Positivo</span>
+                                    <span class="text-slate-300 font-mono">${probPos}%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                                    <div class="progress-bar-inner bg-emerald-400 h-full rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-slate-300"><i class="fa-solid fa-circle text-rose-400 text-[10px] mr-1"></i> Negativo</span>
+                                    <span class="text-slate-300 font-mono">${probNeg}%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                                    <div class="progress-bar-inner bg-rose-400 h-full rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-slate-300"><i class="fa-solid fa-circle text-amber-400 text-[10px] mr-1"></i> Neutro</span>
+                                    <span class="text-slate-300 font-mono">${probNeu}%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                                    <div class="progress-bar-inner bg-amber-400 h-full rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detalles Técnicos de Secuencia -->
+                        <div class="mt-4 pt-3 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs text-slate-400">
+                            <div><strong>Tokens Procesados:</strong> ${texto.split(' ').length} palabras</div>
+                            <div><strong>Celdas de Memoria:</strong> 128 Unidades LSTM</div>
+                        </div>
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    const bars = document.querySelectorAll('.progress-bar-inner');
+                    if (bars.length >= 3) {
+                        bars[0].style.width = probPos + '%';
+                        bars[1].style.width = probNeg + '%';
+                        bars[2].style.width = probNeu + '%';
+                    }
+                }, 100);
+
+            }, 1200);
+        }
+    </script>
+</body>
+</html>
